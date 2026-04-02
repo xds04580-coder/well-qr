@@ -52,7 +52,7 @@ async def is_subscribed(user_id: int) -> bool:
 
 def subscription_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📢 Подписаться", url=f"https://t.me/{CHANNEL_ID.lstrip('@')}")],
+        [InlineKeyboardButton(text="📢 Подписаться", url="https://t.me/WellUtility")],
         [InlineKeyboardButton(text="✅ Я подписался", callback_data="check_sub")]
     ])
 
