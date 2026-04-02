@@ -8,7 +8,7 @@ import qrcode
 from PIL import Image, ImageDraw
 
 # Конфигурация
-TOKEN = 8796049629:AAFq73Ns2Psck30-KXNgAQZuMT4ERbdQQy0
+TOKEN = "8796049629:AAFq73Ns2Psck30-KXNgAQZuMT4ERbdQQy0"
 CHANNEL_ID = -1003885905357
 ADMIN_ID = 8369509247  # ← вставь свой Telegram ID
 DB_FILE = "users.json"
