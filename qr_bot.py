@@ -7,20 +7,24 @@ from aiogram.filters import Command
 import qrcode
 from PIL import Image, ImageDraw
 
-# Конфигурация
-TOKEN = "8796049629:AAFq73Ns2Psck30-KXNgAQZuMT4ERbdQQy0"
+# ═══════════════════════════════════════
+#           КОНФИГУРАЦИЯ
+# ═══════════════════════════════════════
+TOKEN = os.getenv("TOKEN")
 CHANNEL_ID = -1003885905357
-ADMIN_ID = 8369509247  # ← вставь свой Telegram ID
+CHANNEL_URL = "https://t.me/WellUtility"
+ADMIN_ID = 8369509247
 DB_FILE = "users.json"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Флаг ожидания рассылки
 awaiting_broadcast = set()
 
 
-# ─── База данных ───────────────────────────────────────────────
+# ═══════════════════════════════════════
+#           БАЗА ДАННЫХ
+# ═══════════════════════════════════════
 
 def load_db():
     if os.path.exists(DB_FILE):
@@ -34,7 +38,9 @@ def save_db(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-# ─── Проверки ──────────────────────────────────────────────────
+# ═══════════════════════════════════════
+#           ПРОВЕРКИ
+# ═══════════════════════════════════════
 
 def is_admin(user_id: int) -> bool:
     return user_id == ADMIN_ID
@@ -48,12 +54,21 @@ async def is_subscribed(user_id: int) -> bool:
         return False
 
 
-# ─── Клавиатуры ────────────────────────────────────────────────
+# ═══════════════════════════════════════
+#           КЛАВИАТУРЫ
+# ═══════════════════════════════════════
 
 def subscription_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📢 Подписаться", url="https://t.me/WellUtility")],
-        [InlineKeyboardButton(text="✅ Я подписался", callback_data="check_sub")]
+        [InlineKeyboardButton(text="📢 Подписаться на канал", url=CHANNEL_URL)],
+        [InlineKeyboardButton(text="✅ Проверить подписку", callback_data="check_sub")]
+    ])
+
+
+def main_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔲 Создать QR-код", callback_data="generate_qr")],
+        [InlineKeyboardButton(text="📢 Наш канал", url=CHANNEL_URL)]
     ])
 
 
@@ -61,99 +76,170 @@ def admin_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
         [InlineKeyboardButton(text="📢 Рассылка", callback_data="admin_broadcast")],
+        [InlineKeyboardButton(text="🌐 Канал", url=CHANNEL_URL)]
     ])
 
 
-# ─── /start ───────────────────────────────────────────────────
+def back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_main")]
+    ])
+
+
+def cancel_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_broadcast")]
+    ])
+
+
+# ═══════════════════════════════════════
+#           /start
+# ═══════════════════════════════════════
 
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     user_id = message.from_user.id
+    name = message.from_user.first_name or "пользователь"
 
     if is_admin(user_id):
         await message.answer(
-            "<blockquote><b>👑 Админ-панель</b></blockquote>",
+            f"👑 <b>Админ-панель</b>\n\n"
+            f"Привет, <b>{name}</b>!\n"
+            f"Управляй ботом через кнопки ниже.",
             parse_mode="HTML",
             reply_markup=admin_keyboard()
         )
         return
 
     db = load_db()
-    db[str(user_id)] = {"username": message.from_user.username}
+    db[str(user_id)] = {"username": message.from_user.username, "name": name}
     save_db(db)
 
     if not await is_subscribed(user_id):
         await message.answer(
-            "<blockquote><b>Для использования бота необходимо подписаться на канал</b></blockquote>",
+            f"👋 Привет, <b>{name}</b>!\n\n"
+            f"🔒 Для использования бота необходимо подписаться на наш канал.\n\n"
+            f"После подписки нажми <b>«Проверить подписку»</b>",
             parse_mode="HTML",
             reply_markup=subscription_keyboard()
         )
         return
 
     await message.answer(
-        "<blockquote><b>Отправьте ссылку для генерации QR-кода</b></blockquote>",
-        parse_mode="HTML"
-    )
-
-
-# ─── /admin ───────────────────────────────────────────────────
-
-@dp.message(Command("admin"))
-async def cmd_admin(message: Message):
-    if not is_admin(message.from_user.id):
-        return
-    await message.answer(
-        "<blockquote><b>👑 Админ-панель</b></blockquote>",
+        f"👋 Привет, <b>{name}</b>!\n\n"
+        f"🔲 Я умею генерировать <b>QR-коды</b> с красивыми закруглёнными углами.\n\n"
+        f"Нажми кнопку ниже, чтобы начать 👇",
         parse_mode="HTML",
-        reply_markup=admin_keyboard()
+        reply_markup=main_keyboard()
     )
 
 
-# ─── Callback админ-панели ────────────────────────────────────
+# ═══════════════════════════════════════
+#           CALLBACK — ПОЛЬЗОВАТЕЛЬ
+# ═══════════════════════════════════════
+
+@dp.callback_query(F.data == "check_sub")
+async def check_subscription(callback: CallbackQuery):
+    if await is_subscribed(callback.from_user.id):
+        name = callback.from_user.first_name or "пользователь"
+        await callback.message.edit_text(
+            f"✅ <b>Подписка подтверждена!</b>\n\n"
+            f"👋 Привет, <b>{name}</b>!\n\n"
+            f"🔲 Я умею генерировать <b>QR-коды</b> с красивыми закруглёнными углами.\n\n"
+            f"Нажми кнопку ниже, чтобы начать 👇",
+            parse_mode="HTML",
+            reply_markup=main_keyboard()
+        )
+    else:
+        await callback.answer("❌ Вы ещё не подписались на канал!", show_alert=True)
+
+
+@dp.callback_query(F.data == "generate_qr")
+async def ask_for_qr_text(callback: CallbackQuery):
+    await callback.message.edit_text(
+        "🔲 <b>Генерация QR-кода</b>\n\n"
+        "Отправьте ссылку или текст, который хотите закодировать:",
+        parse_mode="HTML",
+        reply_markup=back_keyboard()
+    )
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "back_main")
+async def back_to_main(callback: CallbackQuery):
+    if is_admin(callback.from_user.id):
+        await callback.message.edit_text(
+            "👑 <b>Админ-панель</b>",
+            parse_mode="HTML",
+            reply_markup=admin_keyboard()
+        )
+    else:
+        name = callback.from_user.first_name or "пользователь"
+        await callback.message.edit_text(
+            f"👋 Привет, <b>{name}</b>!\n\n"
+            f"🔲 Я умею генерировать <b>QR-коды</b> с красивыми закруглёнными углами.\n\n"
+            f"Нажми кнопку ниже, чтобы начать 👇",
+            parse_mode="HTML",
+            reply_markup=main_keyboard()
+        )
+    await callback.answer()
+
+
+# ═══════════════════════════════════════
+#           CALLBACK — АДМИН
+# ═══════════════════════════════════════
 
 @dp.callback_query(F.data.startswith("admin_"))
 async def admin_callbacks(callback: CallbackQuery):
     if not is_admin(callback.from_user.id):
-        await callback.answer("Нет доступа", show_alert=True)
+        await callback.answer("⛔ Нет доступа", show_alert=True)
         return
 
     if callback.data == "admin_stats":
         db = load_db()
         total = len(db)
-        await callback.message.answer(
-            f"<blockquote><b>📊 Статистика</b>\n\n"
-            f"👥 Всего пользователей: <b>{total}</b></blockquote>",
-            parse_mode="HTML"
+        await callback.message.edit_text(
+            f"📊 <b>Статистика бота</b>\n\n"
+            f"┌ 👥 Всего пользователей: <b>{total}</b>\n"
+            f"└ 🤖 Бот работает в штатном режиме",
+            parse_mode="HTML",
+            reply_markup=back_keyboard()
         )
         await callback.answer()
 
     elif callback.data == "admin_broadcast":
         awaiting_broadcast.add(callback.from_user.id)
-        await callback.message.answer("📢 Отправьте сообщение для рассылки:")
+        await callback.message.edit_text(
+            "📢 <b>Рассылка</b>\n\n"
+            "Отправьте сообщение, которое будет разослано всем пользователям.\n\n"
+            "Поддерживается: текст, фото, видео, документы.",
+            parse_mode="HTML",
+            reply_markup=cancel_keyboard()
+        )
         await callback.answer()
 
 
-# ─── Callback проверки подписки ───────────────────────────────
-
-@dp.callback_query(F.data == "check_sub")
-async def check_subscription(callback: CallbackQuery):
-    if await is_subscribed(callback.from_user.id):
-        await callback.message.edit_reply_markup(reply_markup=None)
-        await callback.message.answer(
-            "<blockquote><b>Отправьте ссылку для генерации QR-кода</b></blockquote>",
-            parse_mode="HTML"
-        )
-    else:
-        await callback.answer("Вы ещё не подписались на канал!", show_alert=True)
+@dp.callback_query(F.data == "cancel_broadcast")
+async def cancel_broadcast(callback: CallbackQuery):
+    awaiting_broadcast.discard(callback.from_user.id)
+    await callback.message.edit_text(
+        "👑 <b>Админ-панель</b>\n\n"
+        "Рассылка отменена.",
+        parse_mode="HTML",
+        reply_markup=admin_keyboard()
+    )
+    await callback.answer()
 
 
-# ─── Обработка сообщений ──────────────────────────────────────
+# ═══════════════════════════════════════
+#           ОБРАБОТКА ТЕКСТА
+# ═══════════════════════════════════════
 
 @dp.message(F.text)
 async def handle_text(message: Message):
     user_id = message.from_user.id
 
-    # Рассылка
+    # Рассылка от админа
     if is_admin(user_id) and user_id in awaiting_broadcast:
         awaiting_broadcast.discard(user_id)
         db = load_db()
@@ -165,36 +251,55 @@ async def handle_text(message: Message):
             except Exception:
                 failed += 1
         await message.answer(
-            f"<blockquote>📢 Рассылка завершена\n\n"
-            f"✅ Доставлено: <b>{success}</b>\n"
-            f"❌ Ошибок: <b>{failed}</b></blockquote>",
-            parse_mode="HTML"
+            f"📢 <b>Рассылка завершена</b>\n\n"
+            f"┌ ✅ Доставлено: <b>{success}</b>\n"
+            f"└ ❌ Ошибок: <b>{failed}</b>",
+            parse_mode="HTML",
+            reply_markup=admin_keyboard()
         )
         return
 
-    # Обычный пользователь
+    # Проверка подписки
     if not await is_subscribed(user_id):
         await message.answer(
-            "<blockquote><b>Для использования бота необходимо подписаться на канал</b></blockquote>",
+            "🔒 <b>Доступ ограничен</b>\n\n"
+            "Подпишитесь на канал для использования бота.",
             parse_mode="HTML",
             reply_markup=subscription_keyboard()
         )
         return
 
+    # Генерация QR
     user_text = message.text.strip()
     if not user_text:
         return
 
+    wait_msg = await message.answer("⏳ <b>Генерирую QR-код...</b>", parse_mode="HTML")
+
     try:
         qr_file = generate_qr(user_text, user_id)
         photo = FSInputFile(qr_file)
-        await message.answer_photo(photo=photo)
+        await message.answer_photo(
+            photo=photo,
+            caption="✅ <b>QR-код готов!</b>\n\n"
+                    "Нажми кнопку ниже чтобы создать ещё 👇",
+            parse_mode="HTML",
+            reply_markup=main_keyboard()
+        )
         os.remove(qr_file)
     except Exception:
-        await message.answer("Ошибка при создании QR-кода")
+        await message.answer(
+            "❌ <b>Ошибка при создании QR-кода</b>\n\nПопробуйте ещё раз.",
+            parse_mode="HTML",
+            reply_markup=main_keyboard()
+        )
+    finally:
+        await wait_msg.delete()
 
 
-# ─── QR генератор ─────────────────────────────────────────────
+# ═══════════════════════════════════════
+#           QR ГЕНЕРАТОР
+# ═══════════════════════════════════════
 
 def generate_qr(text, user_id):
     qr = qrcode.QRCode(version=1, box_size=50, border=2)
@@ -253,10 +358,12 @@ def generate_qr(text, user_id):
     return filename
 
 
-# ─── Запуск ───────────────────────────────────────────────────
+# ═══════════════════════════════════════
+#           ЗАПУСК
+# ═══════════════════════════════════════
 
 async def main():
-    print("Бот запущен")
+    print("✅ Бот запущен")
     await dp.start_polling(bot)
 
 
