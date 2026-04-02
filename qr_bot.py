@@ -65,24 +65,29 @@ def subscription_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
-def main_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
+def main_keyboard(is_admin_user: bool = False) -> InlineKeyboardMarkup:
+    buttons = [
         [InlineKeyboardButton(text="🔲 Создать QR-код", callback_data="generate_qr")],
-        [InlineKeyboardButton(text="📢 Наш канал", url=CHANNEL_URL)]
-    ])
+        [InlineKeyboardButton(text="📢 Наш канал", url=CHANNEL_URL)],
+    ]
+    if is_admin_user:
+        buttons.append([InlineKeyboardButton(text="👑 Админ-панель", callback_data="open_admin")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def admin_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
         [InlineKeyboardButton(text="📢 Рассылка", callback_data="admin_broadcast")],
-        [InlineKeyboardButton(text="🌐 Канал", url=CHANNEL_URL)]
+        [InlineKeyboardButton(text="🌐 Канал", url=CHANNEL_URL)],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_main")]
     ])
 
 
-def back_keyboard() -> InlineKeyboardMarkup:
+def back_keyboard(to_admin: bool = False) -> InlineKeyboardMarkup:
+    target = "open_admin" if to_admin else "back_main"
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_main")]
+        [InlineKeyboardButton(text="◀️ Назад", callback_data=target)]
     ])
 
 
@@ -101,21 +106,12 @@ async def cmd_start(message: Message):
     user_id = message.from_user.id
     name = message.from_user.first_name or "пользователь"
 
-    if is_admin(user_id):
-        await message.answer(
-            f"👑 <b>Админ-панель</b>\n\n"
-            f"Привет, <b>{name}</b>!\n"
-            f"Управляй ботом через кнопки ниже.",
-            parse_mode="HTML",
-            reply_markup=admin_keyboard()
-        )
-        return
-
     db = load_db()
-    db[str(user_id)] = {"username": message.from_user.username, "name": name}
-    save_db(db)
+    if str(user_id) not in db:
+        db[str(user_id)] = {"username": message.from_user.username, "name": name, "qr_count": 0}
+        save_db(db)
 
-    if not await is_subscribed(user_id):
+    if not is_admin(user_id) and not await is_subscribed(user_id):
         await message.answer(
             f"👋 Привет, <b>{name}</b>!\n\n"
             f"🔒 Для использования бота необходимо подписаться на наш канал.\n\n"
@@ -130,7 +126,7 @@ async def cmd_start(message: Message):
         f"🔲 Я умею генерировать <b>QR-коды</b> с красивыми закруглёнными углами.\n\n"
         f"Нажми кнопку ниже, чтобы начать 👇",
         parse_mode="HTML",
-        reply_markup=main_keyboard()
+        reply_markup=main_keyboard(is_admin_user=is_admin(user_id))
     )
 
 
@@ -160,34 +156,41 @@ async def ask_for_qr_text(callback: CallbackQuery):
         "🔲 <b>Генерация QR-кода</b>\n\n"
         "Отправьте ссылку или текст, который хотите закодировать:",
         parse_mode="HTML",
-        reply_markup=back_keyboard()
+        reply_markup=back_keyboard(to_admin=False)
     )
     await callback.answer()
 
 
 @dp.callback_query(F.data == "back_main")
 async def back_to_main(callback: CallbackQuery):
-    if is_admin(callback.from_user.id):
-        await callback.message.edit_text(
-            "👑 <b>Админ-панель</b>",
-            parse_mode="HTML",
-            reply_markup=admin_keyboard()
-        )
-    else:
-        name = callback.from_user.first_name or "пользователь"
-        await callback.message.edit_text(
-            f"👋 Привет, <b>{name}</b>!\n\n"
-            f"🔲 Я умею генерировать <b>QR-коды</b> с красивыми закруглёнными углами.\n\n"
-            f"Нажми кнопку ниже, чтобы начать 👇",
-            parse_mode="HTML",
-            reply_markup=main_keyboard()
-        )
+    name = callback.from_user.first_name or "пользователь"
+    await callback.message.edit_text(
+        f"👋 Привет, <b>{name}</b>!\n\n"
+        f"🔲 Я умею генерировать <b>QR-коды</b> с красивыми закруглёнными углами.\n\n"
+        f"Нажми кнопку ниже, чтобы начать 👇",
+        parse_mode="HTML",
+        reply_markup=main_keyboard(is_admin_user=is_admin(callback.from_user.id))
+    )
     await callback.answer()
 
 
 # ═══════════════════════════════════════
 #           CALLBACK — АДМИН
 # ═══════════════════════════════════════
+
+@dp.callback_query(F.data == "open_admin")
+async def open_admin_panel(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Нет доступа", show_alert=True)
+        return
+    await callback.message.edit_text(
+        "👑 <b>Админ-панель</b>\n\n"
+        "Выбери действие:",
+        parse_mode="HTML",
+        reply_markup=admin_keyboard()
+    )
+    await callback.answer()
+
 
 @dp.callback_query(F.data.startswith("admin_"))
 async def admin_callbacks(callback: CallbackQuery):
@@ -198,12 +201,14 @@ async def admin_callbacks(callback: CallbackQuery):
     if callback.data == "admin_stats":
         db = load_db()
         total = len(db)
+        total_qr = sum(u.get("qr_count", 0) for u in db.values())
         await callback.message.edit_text(
             f"📊 <b>Статистика бота</b>\n\n"
             f"┌ 👥 Всего пользователей: <b>{total}</b>\n"
+            f"├ 🔲 QR-кодов сгенерировано: <b>{total_qr}</b>\n"
             f"└ 🤖 Бот работает в штатном режиме",
             parse_mode="HTML",
-            reply_markup=back_keyboard()
+            reply_markup=back_keyboard(to_admin=True)
         )
         await callback.answer()
 
@@ -255,12 +260,12 @@ async def handle_text(message: Message):
             f"┌ ✅ Доставлено: <b>{success}</b>\n"
             f"└ ❌ Ошибок: <b>{failed}</b>",
             parse_mode="HTML",
-            reply_markup=admin_keyboard()
+            reply_markup=main_keyboard(is_admin_user=True)
         )
         return
 
-    # Проверка подписки
-    if not await is_subscribed(user_id):
+    # Проверка подписки для обычных пользователей
+    if not is_admin(user_id) and not await is_subscribed(user_id):
         await message.answer(
             "🔒 <b>Доступ ограничен</b>\n\n"
             "Подпишитесь на канал для использования бота.",
@@ -279,19 +284,27 @@ async def handle_text(message: Message):
     try:
         qr_file = generate_qr(user_text, user_id)
         photo = FSInputFile(qr_file)
+
+        # Увеличиваем счётчик
+        db = load_db()
+        if str(user_id) not in db:
+            db[str(user_id)] = {"qr_count": 0}
+        db[str(user_id)]["qr_count"] = db[str(user_id)].get("qr_count", 0) + 1
+        save_db(db)
+
         await message.answer_photo(
             photo=photo,
             caption="✅ <b>QR-код готов!</b>\n\n"
                     "Нажми кнопку ниже чтобы создать ещё 👇",
             parse_mode="HTML",
-            reply_markup=main_keyboard()
+            reply_markup=main_keyboard(is_admin_user=is_admin(user_id))
         )
         os.remove(qr_file)
     except Exception:
         await message.answer(
             "❌ <b>Ошибка при создании QR-кода</b>\n\nПопробуйте ещё раз.",
             parse_mode="HTML",
-            reply_markup=main_keyboard()
+            reply_markup=main_keyboard(is_admin_user=is_admin(user_id))
         )
     finally:
         await wait_msg.delete()
