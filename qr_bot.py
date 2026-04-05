@@ -25,8 +25,8 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 awaiting_broadcast = set()
-user_style = {}       # user_id -> selected QR style
-admin_state = {}      # user_id -> {"action": ..., "key": ...}
+user_style = {}
+admin_state = {}
 
 # ═══════════════════════════════════════
 #           СТИЛИ QR-КОДОВ
@@ -43,12 +43,6 @@ STYLES = {
     "minimal":      {"name": "✨ Минимал", "desc": "Тонкие модули с промежутками"},
 }
 
-# ═══════════════════════════════════════
-#     ДОСТУПНЫЕ ЦВЕТА КНОПОК
-#  Telegram Bot API 8.1+ — поле color
-#  в InlineKeyboardButton
-# ═══════════════════════════════════════
-
 BUTTON_COLORS = {
     "default":  {"name": "⬜ По умолчанию", "value": None},
     "blue":     {"name": "🔵 Синий",        "value": "color_bot_button_blue"},
@@ -58,10 +52,6 @@ BUTTON_COLORS = {
     "purple":   {"name": "🟣 Фиолетовый",   "value": "color_bot_button_purple"},
     "white":    {"name": "⚪ Белый",         "value": "color_bot_button_white"},
 }
-
-# ═══════════════════════════════════════
-#     КЛЮЧИ ЭМОДЗИ И ДЕФОЛТЫ
-# ═══════════════════════════════════════
 
 EMOJI_KEYS = {
     "welcome":   {"label": "👋 Приветствие",  "default": "👋"},
@@ -76,6 +66,116 @@ EMOJI_KEYS = {
     "broadcast": {"label": "📢 Рассылка",     "default": "📢"},
 }
 
+# ═══════════════════════════════════════
+#  ДЕФОЛТНЫЕ ТЕКСТЫ СООБЩЕНИЙ И КНОПОК
+#
+#  Плейсхолдеры в сообщениях:
+#    {e_welcome}, {e_qr}, {e_success}... — эмодзи
+#    {name}   — имя пользователя
+#    {style}  — название стиля QR
+#    {success}, {failed} — счётчики рассылки
+#    {styles_list} — список стилей
+# ═══════════════════════════════════════
+
+DEFAULT_MSGS = {
+    "msg_welcome": (
+        "{e_welcome} Привет, <b>{name}</b>!\n\n"
+        "{e_qr} Я умею генерировать <b>QR-коды</b> в разных стилях и дизайнах.\n\n"
+        "Нажми кнопку ниже, чтобы начать 👇"
+    ),
+    "msg_need_sub": (
+        "{e_welcome} Привет, <b>{name}</b>!\n\n"
+        "{e_lock} Для использования бота необходимо подписаться на наш канал.\n\n"
+        "После подписки нажми <b>«Проверить подписку»</b>"
+    ),
+    "msg_sub_ok": (
+        "{e_success} <b>Подписка подтверждена!</b>\n\n"
+        "{e_welcome} Привет, <b>{name}</b>!\n\n"
+        "{e_qr} Я умею генерировать <b>QR-коды</b> в разных стилях и дизайнах.\n\n"
+        "Нажми кнопку ниже, чтобы начать 👇"
+    ),
+    "msg_choose_style": (
+        "{e_style} <b>Выберите стиль QR-кода:</b>\n\n{styles_list}"
+    ),
+    "msg_enter_text": (
+        "{e_qr} <b>Генерация QR-кода</b>\n\n"
+        "Стиль: {style}\n\n"
+        "Отправьте ссылку или текст, который хотите закодировать:"
+    ),
+    "msg_generating": "{e_wait} <b>Генерирую QR-код...</b>",
+    "msg_qr_ready": (
+        "{e_success} <b>QR-код готов!</b>\n"
+        "Стиль: {style}\n\n"
+        "Нажми кнопку ниже чтобы создать ещё 👇"
+    ),
+    "msg_qr_error": "{e_error} <b>Ошибка при создании QR-кода</b>\n\nПопробуйте ещё раз.",
+    "msg_access_denied": (
+        "{e_lock} <b>Доступ ограничен</b>\n\n"
+        "Подпишитесь на канал для использования бота."
+    ),
+    "msg_broadcast_ask": (
+        "{e_broadcast} <b>Рассылка</b>\n\n"
+        "Отправьте сообщение для рассылки всем пользователям.\n\n"
+        "Поддерживается: текст, фото, видео, документы."
+    ),
+    "msg_broadcast_done": (
+        "{e_broadcast} <b>Рассылка завершена</b>\n\n"
+        "┌ ✅ Доставлено: <b>{success}</b>\n"
+        "└ ❌ Ошибок: <b>{failed}</b>"
+    ),
+    "msg_admin_panel": "{e_admin} <b>Админ-панель</b>\n\nВыбери действие:",
+    "msg_stats": (
+        "{e_stats} <b>Статистика бота</b>\n\n"
+        "┌ 👥 Пользователей: <b>{total_users}</b>\n"
+        "├ 🔲 QR-кодов: <b>{total_qr}</b>\n"
+        "└ 🤖 Бот работает"
+    ),
+}
+
+MSG_META = {
+    "msg_welcome":       "👋 Приветствие",
+    "msg_need_sub":      "🔒 Требуется подписка",
+    "msg_sub_ok":        "✅ Подписка ОК",
+    "msg_choose_style":  "🎨 Выбор стиля",
+    "msg_enter_text":    "📝 Ввод текста",
+    "msg_generating":    "⏳ Генерация",
+    "msg_qr_ready":      "✅ QR готов",
+    "msg_qr_error":      "❌ Ошибка QR",
+    "msg_access_denied": "🔒 Нет доступа",
+    "msg_broadcast_ask": "📢 Рассылка текст",
+    "msg_broadcast_done":"📢 Рассылка готово",
+    "msg_admin_panel":   "👑 Админ-панель",
+    "msg_stats":         "📊 Статистика",
+}
+
+DEFAULT_BTNS = {
+    "btn_create_qr":  "🔲 Создать QR-код",
+    "btn_subscribe":   "📢 Подписаться на канал",
+    "btn_check_sub":   "✅ Проверить подписку",
+    "btn_channel":     "📢 Наш канал",
+    "btn_admin":       "👑 Админ-панель",
+    "btn_back":        "◀️ Назад",
+    "btn_cancel":      "❌ Отмена",
+    "btn_stats":       "📊 Статистика",
+    "btn_broadcast":   "📢 Рассылка",
+    "btn_design":      "🎨 Оформление",
+    "btn_web_channel": "🌐 Канал",
+}
+
+BTN_META = {
+    "btn_create_qr":  "🔲 Создать QR",
+    "btn_subscribe":   "📢 Подписаться",
+    "btn_check_sub":   "✅ Проверить подписку",
+    "btn_channel":     "📢 Наш канал",
+    "btn_admin":       "👑 Админ-панель",
+    "btn_back":        "◀️ Назад",
+    "btn_cancel":      "❌ Отмена",
+    "btn_stats":       "📊 Статистика",
+    "btn_broadcast":   "📢 Рассылка",
+    "btn_design":      "🎨 Оформление",
+    "btn_web_channel": "🌐 Канал",
+}
+
 
 # ═══════════════════════════════════════
 #     БАЗА ДАННЫХ / КОНФИГ
@@ -87,14 +187,12 @@ def load_db():
             return json.load(f)
     return {}
 
-
 def save_db(data):
     with open(DB_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-
 def load_config():
-    default = {"emoji": {}, "button_color": None}
+    default = {"emoji": {}, "button_color": None, "texts": {}, "buttons": {}}
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
@@ -106,18 +204,17 @@ def load_config():
             pass
     return default
 
-
 def save_config(data):
     with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 # ═══════════════════════════════════════
-#     ХЕЛПЕРЫ — ЭМОДЗИ И КНОПКИ
+#  ХЕЛПЕРЫ — ЭМОДЗИ / ТЕКСТЫ / КНОПКИ
 # ═══════════════════════════════════════
 
 def e(key: str) -> str:
-    """Возвращает tg-emoji HTML или обычный fallback."""
+    """Премиум tg-emoji или обычный fallback."""
     cfg = load_config()
     custom = cfg.get("emoji", {}).get(key)
     fallback = EMOJI_KEYS.get(key, {}).get("default", "")
@@ -127,19 +224,36 @@ def e(key: str) -> str:
     return fallback
 
 
-def btn(text: str, callback_data: str = None, url: str = None) -> InlineKeyboardButton:
-    """Создаёт кнопку с цветом из конфига (Bot API 8.1+)."""
+def t(key: str, **kwargs) -> str:
+    """Получает текст сообщения (кастомный или дефолтный), подставляет плейсхолдеры."""
+    cfg = load_config()
+    raw = cfg.get("texts", {}).get(key) or DEFAULT_MSGS.get(key, key)
+    # Подставляем эмодзи {e_xxx}
+    for ek in EMOJI_KEYS:
+        raw = raw.replace(f"{{e_{ek}}}", e(ek))
+    # Подставляем аргументы {name}, {style}, ...
+    for k, v in kwargs.items():
+        raw = raw.replace(f"{{{k}}}", str(v))
+    return raw
+
+
+def b(key: str) -> str:
+    """Получает текст кнопки (кастомный или дефолтный)."""
+    cfg = load_config()
+    return cfg.get("buttons", {}).get(key) or DEFAULT_BTNS.get(key, key)
+
+
+def mkbtn(text: str, callback_data: str = None, url: str = None) -> InlineKeyboardButton:
+    """Создаёт InlineKeyboardButton с цветом из конфига."""
     kwargs = {"text": text}
     if callback_data:
         kwargs["callback_data"] = callback_data
     if url:
         kwargs["url"] = url
-
     cfg = load_config()
     color = cfg.get("button_color")
     if color:
         kwargs["color"] = color
-
     try:
         return InlineKeyboardButton(**kwargs)
     except Exception:
@@ -151,14 +265,13 @@ def btn(text: str, callback_data: str = None, url: str = None) -> InlineKeyboard
 #           ПРОВЕРКИ
 # ═══════════════════════════════════════
 
-def is_admin(user_id: int) -> bool:
-    return user_id == ADMIN_ID
+def is_admin(uid: int) -> bool:
+    return uid == ADMIN_ID
 
-
-async def is_subscribed(user_id: int) -> bool:
+async def is_subscribed(uid: int) -> bool:
     try:
-        member = await bot.get_chat_member(CHANNEL_ID, user_id)
-        return member.status not in ("left", "kicked", "banned")
+        m = await bot.get_chat_member(CHANNEL_ID, uid)
+        return m.status not in ("left", "kicked", "banned")
     except Exception:
         return False
 
@@ -167,60 +280,107 @@ async def is_subscribed(user_id: int) -> bool:
 #           КЛАВИАТУРЫ
 # ═══════════════════════════════════════
 
-def subscription_keyboard():
+def kb_sub():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [btn("📢 Подписаться на канал", url=CHANNEL_URL)],
-        [btn("✅ Проверить подписку", callback_data="check_sub")]
+        [mkbtn(b("btn_subscribe"), url=CHANNEL_URL)],
+        [mkbtn(b("btn_check_sub"), callback_data="check_sub")]
+    ])
+
+def kb_main(admin=False):
+    rows = [
+        [mkbtn(b("btn_create_qr"), callback_data="generate_qr")],
+        [mkbtn(b("btn_channel"), url=CHANNEL_URL)],
+    ]
+    if admin:
+        rows.append([mkbtn(b("btn_admin"), callback_data="open_admin")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+def kb_styles():
+    rows = []
+    keys = list(STYLES.keys())
+    for i in range(0, len(keys), 2):
+        row = [mkbtn(STYLES[keys[i+j]]["name"], callback_data=f"style_{keys[i+j]}")
+               for j in range(2) if i+j < len(keys)]
+        rows.append(row)
+    rows.append([mkbtn(b("btn_back"), callback_data="back_main")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+def kb_admin():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [mkbtn(b("btn_stats"), callback_data="admin_stats")],
+        [mkbtn(b("btn_broadcast"), callback_data="admin_broadcast")],
+        [mkbtn(b("btn_design"), callback_data="admin_design")],
+        [mkbtn(b("btn_web_channel"), url=CHANNEL_URL)],
+        [mkbtn(b("btn_back"), callback_data="back_main")]
+    ])
+
+def kb_design():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [mkbtn("😀 Эмодзи", callback_data="design_emoji")],
+        [mkbtn("📝 Тексты", callback_data="design_texts")],
+        [mkbtn("🔘 Кнопки", callback_data="design_buttons")],
+        [mkbtn("🎹 Цвет кнопок", callback_data="design_colors")],
+        [mkbtn("🔄 Сбросить всё", callback_data="design_reset")],
+        [mkbtn(b("btn_back"), callback_data="open_admin")]
+    ])
+
+def kb_back(target="back_main"):
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [mkbtn(b("btn_back"), callback_data=target)]
+    ])
+
+def kb_cancel():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [mkbtn(b("btn_cancel"), callback_data="cancel_broadcast")]
     ])
 
 
-def main_keyboard(is_admin_user=False):
-    buttons = [
-        [btn("🔲 Создать QR-код", callback_data="generate_qr")],
-        [btn("📢 Наш канал", url=CHANNEL_URL)],
-    ]
-    if is_admin_user:
-        buttons.append([btn("👑 Админ-панель", callback_data="open_admin")])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
+# ── Клавиатуры для редактирования текстов ──
 
-
-def style_keyboard():
-    buttons = []
-    keys = list(STYLES.keys())
+def kb_msg_list():
+    """Список сообщений для редактирования."""
+    cfg = load_config()
+    custom_texts = cfg.get("texts", {})
+    rows = []
+    keys = list(MSG_META.keys())
     for i in range(0, len(keys), 2):
         row = []
         for j in range(2):
             if i + j < len(keys):
                 k = keys[i + j]
-                row.append(btn(STYLES[k]["name"], callback_data=f"style_{k}"))
-        buttons.append(row)
-    buttons.append([btn("◀️ Назад", callback_data="back_main")])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
+                label = MSG_META[k]
+                mark = " ✦" if k in custom_texts else ""
+                row.append(mkbtn(f"{label}{mark}", callback_data=f"txe_{k}"))
+        rows.append(row)
+    rows.append([mkbtn("🗑 Сбросить все тексты", callback_data="txt_reset_msgs")])
+    rows.append([mkbtn(b("btn_back"), callback_data="admin_design")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def admin_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [btn("📊 Статистика", callback_data="admin_stats")],
-        [btn("📢 Рассылка", callback_data="admin_broadcast")],
-        [btn("🎨 Оформление", callback_data="admin_design")],
-        [btn("🌐 Канал", url=CHANNEL_URL)],
-        [btn("◀️ Назад", callback_data="back_main")]
-    ])
+def kb_btn_list():
+    """Список кнопок для редактирования."""
+    cfg = load_config()
+    custom_btns = cfg.get("buttons", {})
+    rows = []
+    keys = list(BTN_META.keys())
+    for i in range(0, len(keys), 2):
+        row = []
+        for j in range(2):
+            if i + j < len(keys):
+                k = keys[i + j]
+                label = BTN_META[k]
+                mark = " ✦" if k in custom_btns else ""
+                row.append(mkbtn(f"{label}{mark}", callback_data=f"bte_{k}"))
+        rows.append(row)
+    rows.append([mkbtn("🗑 Сбросить все кнопки", callback_data="txt_reset_btns")])
+    rows.append([mkbtn(b("btn_back"), callback_data="admin_design")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def design_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [btn("😀 Эмодзи", callback_data="design_emoji")],
-        [btn("🎹 Цвет кнопок", callback_data="design_colors")],
-        [btn("🔄 Сбросить всё", callback_data="design_reset")],
-        [btn("◀️ Назад", callback_data="open_admin")]
-    ])
-
-
-def emoji_list_keyboard():
+def kb_emoji_list():
     cfg = load_config()
     custom = cfg.get("emoji", {})
-    buttons = []
+    rows = []
     keys = list(EMOJI_KEYS.keys())
     for i in range(0, len(keys), 2):
         row = []
@@ -229,35 +389,22 @@ def emoji_list_keyboard():
                 k = keys[i + j]
                 label = EMOJI_KEYS[k]["label"]
                 mark = " ✦" if k in custom and custom[k].get("id") else ""
-                row.append(btn(f"{label}{mark}", callback_data=f"emj_set_{k}"))
-        buttons.append(row)
-    buttons.append([btn("🗑 Сбросить все эмодзи", callback_data="emj_reset_all")])
-    buttons.append([btn("◀️ Назад", callback_data="admin_design")])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
+                row.append(mkbtn(f"{label}{mark}", callback_data=f"emj_set_{k}"))
+        rows.append(row)
+    rows.append([mkbtn("🗑 Сбросить все эмодзи", callback_data="emj_reset_all")])
+    rows.append([mkbtn(b("btn_back"), callback_data="admin_design")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def color_keyboard():
+def kb_colors():
     cfg = load_config()
     current = cfg.get("button_color")
-    buttons = []
+    rows = []
     for key, info in BUTTON_COLORS.items():
         mark = " ✓" if info["value"] == current else ""
-        buttons.append([btn(f"{info['name']}{mark}", callback_data=f"clr_{key}")])
-    buttons.append([btn("◀️ Назад", callback_data="admin_design")])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
-def back_keyboard(to_admin=False):
-    target = "open_admin" if to_admin else "back_main"
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [btn("◀️ Назад", callback_data=target)]
-    ])
-
-
-def cancel_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [btn("❌ Отмена", callback_data="cancel_broadcast")]
-    ])
+        rows.append([mkbtn(f"{info['name']}{mark}", callback_data=f"clr_{key}")])
+    rows.append([mkbtn(b("btn_back"), callback_data="admin_design")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 # ═══════════════════════════════════════
@@ -266,336 +413,336 @@ def cancel_keyboard():
 
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
-    user_id = message.from_user.id
+    uid = message.from_user.id
     name = message.from_user.first_name or "пользователь"
 
     db = load_db()
-    if str(user_id) not in db:
-        db[str(user_id)] = {"username": message.from_user.username, "name": name, "qr_count": 0}
+    if str(uid) not in db:
+        db[str(uid)] = {"username": message.from_user.username, "name": name, "qr_count": 0}
         save_db(db)
 
-    if not is_admin(user_id) and not await is_subscribed(user_id):
-        await message.answer(
-            f"{e('welcome')} Привет, <b>{name}</b>!\n\n"
-            f"{e('lock')} Для использования бота необходимо подписаться на наш канал.\n\n"
-            f"После подписки нажми <b>«Проверить подписку»</b>",
-            parse_mode="HTML",
-            reply_markup=subscription_keyboard()
-        )
+    if not is_admin(uid) and not await is_subscribed(uid):
+        await message.answer(t("msg_need_sub", name=name), parse_mode="HTML", reply_markup=kb_sub())
         return
 
-    await message.answer(
-        f"{e('welcome')} Привет, <b>{name}</b>!\n\n"
-        f"{e('qr')} Я умею генерировать <b>QR-коды</b> в разных стилях и дизайнах.\n\n"
-        f"Нажми кнопку ниже, чтобы начать 👇",
-        parse_mode="HTML",
-        reply_markup=main_keyboard(is_admin_user=is_admin(user_id))
-    )
+    await message.answer(t("msg_welcome", name=name), parse_mode="HTML", reply_markup=kb_main(admin=is_admin(uid)))
 
 
 # ═══════════════════════════════════════
-#           CALLBACK — ПОЛЬЗОВАТЕЛЬ
+#     CALLBACK — ПОЛЬЗОВАТЕЛЬ
 # ═══════════════════════════════════════
 
 @dp.callback_query(F.data == "check_sub")
-async def check_subscription(callback: CallbackQuery):
+async def cb_check_sub(callback: CallbackQuery):
     if await is_subscribed(callback.from_user.id):
         name = callback.from_user.first_name or "пользователь"
         await callback.message.edit_text(
-            f"{e('success')} <b>Подписка подтверждена!</b>\n\n"
-            f"{e('welcome')} Привет, <b>{name}</b>!\n\n"
-            f"{e('qr')} Я умею генерировать <b>QR-коды</b> в разных стилях и дизайнах.\n\n"
-            f"Нажми кнопку ниже, чтобы начать 👇",
-            parse_mode="HTML",
-            reply_markup=main_keyboard()
-        )
+            t("msg_sub_ok", name=name), parse_mode="HTML", reply_markup=kb_main())
     else:
         await callback.answer("❌ Вы ещё не подписались на канал!", show_alert=True)
 
 
 @dp.callback_query(F.data == "generate_qr")
-async def choose_style(callback: CallbackQuery):
-    style_list = "\n".join(f"  {s['name']} — {s['desc']}" for s in STYLES.values())
+async def cb_choose_style(callback: CallbackQuery):
+    sl = "\n".join(f"  {s['name']} — {s['desc']}" for s in STYLES.values())
     await callback.message.edit_text(
-        f"{e('style')} <b>Выберите стиль QR-кода:</b>\n\n{style_list}",
-        parse_mode="HTML",
-        reply_markup=style_keyboard()
-    )
+        t("msg_choose_style", styles_list=sl), parse_mode="HTML", reply_markup=kb_styles())
     await callback.answer()
 
 
 @dp.callback_query(F.data.startswith("style_"))
-async def style_selected(callback: CallbackQuery):
-    style_key = callback.data.replace("style_", "")
-    if style_key not in STYLES:
-        await callback.answer("❌ Неизвестный стиль", show_alert=True)
-        return
-    user_style[callback.from_user.id] = style_key
+async def cb_style(callback: CallbackQuery):
+    sk = callback.data[6:]
+    if sk not in STYLES:
+        await callback.answer("❌ Неизвестный стиль", show_alert=True); return
+    user_style[callback.from_user.id] = sk
     await callback.message.edit_text(
-        f"{e('qr')} <b>Генерация QR-кода</b>\n\n"
-        f"Стиль: {STYLES[style_key]['name']}\n\n"
-        f"Отправьте ссылку или текст, который хотите закодировать:",
-        parse_mode="HTML",
-        reply_markup=back_keyboard()
-    )
+        t("msg_enter_text", style=STYLES[sk]["name"]), parse_mode="HTML", reply_markup=kb_back())
     await callback.answer()
 
 
 @dp.callback_query(F.data == "back_main")
-async def back_to_main(callback: CallbackQuery):
+async def cb_back_main(callback: CallbackQuery):
     uid = callback.from_user.id
-    user_style.pop(uid, None)
-    admin_state.pop(uid, None)
+    user_style.pop(uid, None); admin_state.pop(uid, None)
     name = callback.from_user.first_name or "пользователь"
     await callback.message.edit_text(
-        f"{e('welcome')} Привет, <b>{name}</b>!\n\n"
-        f"{e('qr')} Я умею генерировать <b>QR-коды</b> в разных стилях и дизайнах.\n\n"
-        f"Нажми кнопку ниже, чтобы начать 👇",
-        parse_mode="HTML",
-        reply_markup=main_keyboard(is_admin_user=is_admin(uid))
-    )
+        t("msg_welcome", name=name), parse_mode="HTML", reply_markup=kb_main(admin=is_admin(uid)))
     await callback.answer()
 
 
 # ═══════════════════════════════════════
-#           CALLBACK — АДМИН
+#     CALLBACK — АДМИН (основные)
 # ═══════════════════════════════════════
 
 @dp.callback_query(F.data == "open_admin")
-async def open_admin_panel(callback: CallbackQuery):
+async def cb_admin(callback: CallbackQuery):
     if not is_admin(callback.from_user.id):
-        await callback.answer("⛔ Нет доступа", show_alert=True)
-        return
+        await callback.answer("⛔ Нет доступа", show_alert=True); return
     admin_state.pop(callback.from_user.id, None)
     await callback.message.edit_text(
-        f"{e('admin')} <b>Админ-панель</b>\n\nВыбери действие:",
-        parse_mode="HTML",
-        reply_markup=admin_keyboard()
-    )
+        t("msg_admin_panel"), parse_mode="HTML", reply_markup=kb_admin())
     await callback.answer()
 
 
 @dp.callback_query(F.data == "admin_stats")
-async def admin_stats(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        return
+async def cb_stats(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
     db = load_db()
-    total = len(db)
-    total_qr = sum(u.get("qr_count", 0) for u in db.values())
-    cfg = load_config()
-    custom_count = sum(1 for v in cfg.get("emoji", {}).values() if v.get("id"))
-    color_name = "по умолчанию"
-    for info in BUTTON_COLORS.values():
-        if info["value"] == cfg.get("button_color"):
-            color_name = info["name"]
-            break
-
     await callback.message.edit_text(
-        f"{e('stats')} <b>Статистика бота</b>\n\n"
-        f"┌ 👥 Пользователей: <b>{total}</b>\n"
-        f"├ 🔲 QR-кодов: <b>{total_qr}</b>\n"
-        f"├ 😀 Кастомных эмодзи: <b>{custom_count}</b>\n"
-        f"├ 🎹 Цвет кнопок: <b>{color_name}</b>\n"
-        f"└ 🤖 Бот работает",
-        parse_mode="HTML",
-        reply_markup=back_keyboard(to_admin=True)
-    )
+        t("msg_stats",
+          total_users=len(db),
+          total_qr=sum(u.get("qr_count", 0) for u in db.values())),
+        parse_mode="HTML", reply_markup=kb_back("open_admin"))
     await callback.answer()
 
 
 @dp.callback_query(F.data == "admin_broadcast")
-async def admin_broadcast(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        return
+async def cb_broadcast(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
     awaiting_broadcast.add(callback.from_user.id)
     admin_state.pop(callback.from_user.id, None)
     await callback.message.edit_text(
-        f"{e('broadcast')} <b>Рассылка</b>\n\n"
-        "Отправьте сообщение для рассылки всем пользователям.\n\n"
-        "Поддерживается: текст, фото, видео, документы.",
-        parse_mode="HTML",
-        reply_markup=cancel_keyboard()
-    )
+        t("msg_broadcast_ask"), parse_mode="HTML", reply_markup=kb_cancel())
     await callback.answer()
 
 
 @dp.callback_query(F.data == "cancel_broadcast")
-async def cancel_broadcast(callback: CallbackQuery):
+async def cb_cancel_bcast(callback: CallbackQuery):
     awaiting_broadcast.discard(callback.from_user.id)
     await callback.message.edit_text(
-        f"{e('admin')} <b>Админ-панель</b>\n\nРассылка отменена.",
-        parse_mode="HTML",
-        reply_markup=admin_keyboard()
-    )
+        t("msg_admin_panel") + "\n\nРассылка отменена.",
+        parse_mode="HTML", reply_markup=kb_admin())
     await callback.answer()
 
 
 # ═══════════════════════════════════════
-#     CALLBACK — ОФОРМЛЕНИЕ
+#     CALLBACK — ОФОРМЛЕНИЕ (главная)
 # ═══════════════════════════════════════
 
 @dp.callback_query(F.data == "admin_design")
-async def design_menu(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        return
+async def cb_design(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
     admin_state.pop(callback.from_user.id, None)
     cfg = load_config()
-    custom_count = sum(1 for v in cfg.get("emoji", {}).values() if v.get("id"))
-    color_label = "по умолчанию"
+    ce = sum(1 for v in cfg.get("emoji", {}).values() if v.get("id"))
+    ct = len(cfg.get("texts", {}))
+    cb_ = len(cfg.get("buttons", {}))
+    cl = "по умолчанию"
     for info in BUTTON_COLORS.values():
         if info["value"] == cfg.get("button_color"):
-            color_label = info["name"]
-            break
-
+            cl = info["name"]; break
     await callback.message.edit_text(
         f"{e('style')} <b>Оформление бота</b>\n\n"
-        f"Кастомных эмодзи: <b>{custom_count} / {len(EMOJI_KEYS)}</b>\n"
-        f"Цвет кнопок: <b>{color_label}</b>\n\n"
-        f"Выберите что настроить:",
-        parse_mode="HTML",
-        reply_markup=design_keyboard()
-    )
+        f"Эмодзи: <b>{ce} / {len(EMOJI_KEYS)}</b>\n"
+        f"Тексты: <b>{ct} / {len(DEFAULT_MSGS)}</b>\n"
+        f"Кнопки: <b>{cb_} / {len(DEFAULT_BTNS)}</b>\n"
+        f"Цвет: <b>{cl}</b>",
+        parse_mode="HTML", reply_markup=kb_design())
     await callback.answer()
 
 
-# ── Эмодзи ──
+# ═══════════════════════════════════════
+#     CALLBACK — ЭМОДЗИ
+# ═══════════════════════════════════════
 
 @dp.callback_query(F.data == "design_emoji")
-async def emoji_menu(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        return
+async def cb_emoji_menu(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
     admin_state.pop(callback.from_user.id, None)
     await callback.message.edit_text(
         "😀 <b>Настройка эмодзи</b>\n\n"
         "Выберите элемент для замены на премиум-эмодзи.\n"
-        "Отмечены <b>✦</b> — уже настроенные.\n\n"
-        "<i>После выбора отправьте сообщение с премиум-эмодзи</i>",
-        parse_mode="HTML",
-        reply_markup=emoji_list_keyboard()
-    )
+        "<b>✦</b> — уже настроенные.\n\n"
+        "<i>После выбора отправьте премиум-эмодзи или <code>id:ЧИСЛО</code></i>",
+        parse_mode="HTML", reply_markup=kb_emoji_list())
     await callback.answer()
 
 
 @dp.callback_query(F.data.startswith("emj_set_"))
-async def emoji_set_start(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        return
-    key = callback.data.replace("emj_set_", "")
+async def cb_emoji_set(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    key = callback.data[8:]
     if key not in EMOJI_KEYS:
-        await callback.answer("❌ Неизвестный ключ", show_alert=True)
-        return
-
+        await callback.answer("❌", show_alert=True); return
     admin_state[callback.from_user.id] = {"action": "set_emoji", "key": key}
-    label = EMOJI_KEYS[key]["label"]
-
     cfg = load_config()
-    current = cfg.get("emoji", {}).get(key)
-    if current and current.get("id"):
-        current_text = f'premium emoji, id=<code>{current["id"]}</code>'
-    else:
-        current_text = "стандартный"
-
+    cur = cfg.get("emoji", {}).get(key)
+    ct = f'id=<code>{cur["id"]}</code>' if cur and cur.get("id") else "стандартный"
     await callback.message.edit_text(
-        f"😀 <b>Настройка: {label}</b>\n\n"
-        f"Текущий: {current_text}\n\n"
-        f"Отправьте сообщение с <b>одним премиум-эмодзи</b>.\n\n"
-        f"Или отправьте <code>reset</code> чтобы сбросить,\n"
-        f"или <code>id:ЧИСЛО</code> чтобы задать ID вручную.",
-        parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [btn("◀️ Назад", callback_data="design_emoji")]
-        ])
-    )
+        f"😀 <b>{EMOJI_KEYS[key]['label']}</b>\n\n"
+        f"Текущий: {ct}\n\n"
+        f"Отправьте <b>премиум-эмодзи</b>, <code>id:ЧИСЛО</code> или <code>reset</code>",
+        parse_mode="HTML", reply_markup=kb_back("design_emoji"))
     await callback.answer()
 
 
 @dp.callback_query(F.data == "emj_reset_all")
-async def emoji_reset_all(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        return
-    cfg = load_config()
-    cfg["emoji"] = {}
-    save_config(cfg)
+async def cb_emoji_reset(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    cfg = load_config(); cfg["emoji"] = {}; save_config(cfg)
     await callback.message.edit_text(
-        f"{e('success')} <b>Все кастомные эмодзи сброшены</b>",
-        parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [btn("◀️ Назад", callback_data="design_emoji")]
-        ])
-    )
+        "✅ <b>Все эмодзи сброшены</b>",
+        parse_mode="HTML", reply_markup=kb_back("design_emoji"))
     await callback.answer()
 
 
-# ── Цвета кнопок ──
+# ═══════════════════════════════════════
+#     CALLBACK — ТЕКСТЫ СООБЩЕНИЙ
+# ═══════════════════════════════════════
+
+@dp.callback_query(F.data == "design_texts")
+async def cb_texts_menu(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    admin_state.pop(callback.from_user.id, None)
+    await callback.message.edit_text(
+        "📝 <b>Тексты сообщений</b>\n\n"
+        "Выберите сообщение для редактирования.\n"
+        "<b>✦</b> — кастомизированные.\n\n"
+        "<i>Поддерживается HTML-разметка и плейсхолдеры:\n"
+        "<code>{name}</code> — имя, <code>{style}</code> — стиль,\n"
+        "<code>{e_welcome}</code> <code>{e_qr}</code> <code>{e_success}</code>... — эмодзи</i>",
+        parse_mode="HTML", reply_markup=kb_msg_list())
+    await callback.answer()
+
+
+@dp.callback_query(F.data.startswith("txe_"))
+async def cb_text_edit_start(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    key = callback.data[4:]
+    if key not in DEFAULT_MSGS:
+        await callback.answer("❌", show_alert=True); return
+    admin_state[callback.from_user.id] = {"action": "set_text", "key": key}
+
+    cfg = load_config()
+    current = cfg.get("texts", {}).get(key) or DEFAULT_MSGS[key]
+    # Экранируем < > для показа в HTML (превью кода)
+    preview = current.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    # Обрезаем если слишком длинный
+    if len(preview) > 500:
+        preview = preview[:500] + "…"
+
+    await callback.message.edit_text(
+        f"📝 <b>{MSG_META[key]}</b>\n\n"
+        f"Текущий текст:\n<code>{preview}</code>\n\n"
+        f"Отправьте новый текст или <code>reset</code> для сброса.\n\n"
+        f"<i>Плейсхолдеры: <code>{{name}}</code> <code>{{style}}</code> "
+        f"<code>{{e_welcome}}</code> <code>{{e_qr}}</code> <code>{{e_success}}</code> "
+        f"<code>{{e_error}}</code> <code>{{e_lock}}</code> <code>{{e_wait}}</code> "
+        f"<code>{{styles_list}}</code> <code>{{success}}</code> <code>{{failed}}</code> "
+        f"<code>{{total_users}}</code> <code>{{total_qr}}</code></i>",
+        parse_mode="HTML",
+        reply_markup=kb_back("design_texts"))
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "txt_reset_msgs")
+async def cb_texts_reset(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    cfg = load_config(); cfg["texts"] = {}; save_config(cfg)
+    await callback.message.edit_text(
+        "✅ <b>Все тексты сообщений сброшены</b>",
+        parse_mode="HTML", reply_markup=kb_back("design_texts"))
+    await callback.answer()
+
+
+# ═══════════════════════════════════════
+#     CALLBACK — ТЕКСТЫ КНОПОК
+# ═══════════════════════════════════════
+
+@dp.callback_query(F.data == "design_buttons")
+async def cb_buttons_menu(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    admin_state.pop(callback.from_user.id, None)
+    await callback.message.edit_text(
+        "🔘 <b>Тексты кнопок</b>\n\n"
+        "Выберите кнопку для редактирования.\n"
+        "<b>✦</b> — кастомизированные.",
+        parse_mode="HTML", reply_markup=kb_btn_list())
+    await callback.answer()
+
+
+@dp.callback_query(F.data.startswith("bte_"))
+async def cb_btn_edit_start(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    key = callback.data[4:]
+    if key not in DEFAULT_BTNS:
+        await callback.answer("❌", show_alert=True); return
+    admin_state[callback.from_user.id] = {"action": "set_btn", "key": key}
+
+    cfg = load_config()
+    current = cfg.get("buttons", {}).get(key) or DEFAULT_BTNS[key]
+
+    await callback.message.edit_text(
+        f"🔘 <b>{BTN_META[key]}</b>\n\n"
+        f"Текущий текст: <code>{current}</code>\n\n"
+        f"Отправьте новый текст кнопки или <code>reset</code> для сброса.",
+        parse_mode="HTML",
+        reply_markup=kb_back("design_buttons"))
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "txt_reset_btns")
+async def cb_btns_reset(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    cfg = load_config(); cfg["buttons"] = {}; save_config(cfg)
+    await callback.message.edit_text(
+        "✅ <b>Все тексты кнопок сброшены</b>",
+        parse_mode="HTML", reply_markup=kb_back("design_buttons"))
+    await callback.answer()
+
+
+# ═══════════════════════════════════════
+#     CALLBACK — ЦВЕТА КНОПОК
+# ═══════════════════════════════════════
 
 @dp.callback_query(F.data == "design_colors")
-async def color_menu(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        return
+async def cb_colors(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
     await callback.message.edit_text(
-        "🎹 <b>Цвет кнопок</b>\n\n"
-        "Выберите цвет для инлайн-кнопок бота.\n"
-        "Отмечен <b>✓</b> — текущий.\n\n"
-        "<i>Требуется Telegram Bot API 8.1+\n"
-        "и aiogram с поддержкой поля color</i>",
-        parse_mode="HTML",
-        reply_markup=color_keyboard()
-    )
+        "🎹 <b>Цвет кнопок</b>\n\n<b>✓</b> — текущий.\n\n"
+        "<i>Требуется Telegram Bot API 8.1+</i>",
+        parse_mode="HTML", reply_markup=kb_colors())
     await callback.answer()
 
 
 @dp.callback_query(F.data.startswith("clr_"))
-async def color_selected(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        return
-    color_key = callback.data.replace("clr_", "")
-    if color_key not in BUTTON_COLORS:
-        return
-
-    cfg = load_config()
-    cfg["button_color"] = BUTTON_COLORS[color_key]["value"]
-    save_config(cfg)
-
+async def cb_color_set(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    ck = callback.data[4:]
+    if ck not in BUTTON_COLORS: return
+    cfg = load_config(); cfg["button_color"] = BUTTON_COLORS[ck]["value"]; save_config(cfg)
     await callback.message.edit_text(
-        f"🎹 <b>Цвет кнопок обновлён</b>\n\n"
-        f"Новый цвет: <b>{BUTTON_COLORS[color_key]['name']}</b>\n\n"
-        f"Применится к новым сообщениям.",
-        parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [btn("🎹 Назад к цветам", callback_data="design_colors")],
-            [btn("◀️ Оформление", callback_data="admin_design")]
-        ])
-    )
-    await callback.answer()
-
-
-# ── Сброс всего ──
-
-@dp.callback_query(F.data == "design_reset")
-async def design_reset(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        return
-    cfg = load_config()
-    cfg["emoji"] = {}
-    cfg["button_color"] = None
-    save_config(cfg)
-    await callback.message.edit_text(
-        f"{e('success')} <b>Оформление сброшено</b>\n\n"
-        "Все настройки возвращены к стандартным.",
-        parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [btn("◀️ Назад", callback_data="admin_design")]
-        ])
-    )
+        f"🎹 <b>Цвет обновлён:</b> {BUTTON_COLORS[ck]['name']}",
+        parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [mkbtn("🎹 Цвета", callback_data="design_colors")],
+            [mkbtn(b("btn_back"), callback_data="admin_design")]
+        ]))
     await callback.answer()
 
 
 # ═══════════════════════════════════════
-#           ОБРАБОТКА ТЕКСТА
+#     CALLBACK — СБРОС ВСЕГО
+# ═══════════════════════════════════════
+
+@dp.callback_query(F.data == "design_reset")
+async def cb_reset_all(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    cfg = load_config()
+    cfg["emoji"] = {}; cfg["button_color"] = None
+    cfg["texts"] = {}; cfg["buttons"] = {}
+    save_config(cfg)
+    await callback.message.edit_text(
+        "✅ <b>Всё оформление сброшено</b>\n\nЭмодзи, тексты, кнопки, цвета — по умолчанию.",
+        parse_mode="HTML", reply_markup=kb_back("admin_design"))
+    await callback.answer()
+
+
+# ═══════════════════════════════════════
+#     ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ
 # ═══════════════════════════════════════
 
 def extract_custom_emoji_id(message: Message) -> str | None:
-    """Извлекает custom_emoji_id из entities сообщения."""
     if not message.entities:
         return None
     for ent in message.entities:
@@ -606,144 +753,135 @@ def extract_custom_emoji_id(message: Message) -> str | None:
 
 @dp.message(F.text)
 async def handle_text(message: Message):
-    user_id = message.from_user.id
+    uid = message.from_user.id
     text = message.text.strip()
+    state = admin_state.get(uid)
 
-    # ── Админ: настройка эмодзи ──
-    state = admin_state.get(user_id)
-    if is_admin(user_id) and state and state.get("action") == "set_emoji":
-        key = state["key"]
-        admin_state.pop(user_id, None)
-
-        # Сброс
+    # ═══ Админ: настройка эмодзи ═══
+    if is_admin(uid) and state and state.get("action") == "set_emoji":
+        key = state["key"]; admin_state.pop(uid, None)
         if text.lower() == "reset":
-            cfg = load_config()
-            cfg.get("emoji", {}).pop(key, None)
-            save_config(cfg)
+            cfg = load_config(); cfg.get("emoji", {}).pop(key, None); save_config(cfg)
             await message.answer(
-                f"{e('success')} Эмодзи <b>{EMOJI_KEYS[key]['label']}</b> сброшен.",
-                parse_mode="HTML",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                    [btn("◀️ Назад", callback_data="design_emoji")]
-                ])
-            )
+                f"✅ Эмодзи <b>{EMOJI_KEYS[key]['label']}</b> сброшен.",
+                parse_mode="HTML", reply_markup=kb_back("design_emoji"))
             return
 
-        # Ручной ввод ID: "id:5870982283724328568"
         emoji_id = None
-        id_match = re.match(r'^id[:\s]?(\d{5,})$', text)
-        if id_match:
-            emoji_id = id_match.group(1)
-
-        # Из entities (когда отправлен реальный премиум-эмодзи)
-        if not emoji_id:
-            emoji_id = extract_custom_emoji_id(message)
-
-        # Просто число
-        if not emoji_id and text.isdigit() and len(text) > 5:
-            emoji_id = text
+        m = re.match(r'^id[:\s]?(\d{5,})$', text)
+        if m: emoji_id = m.group(1)
+        if not emoji_id: emoji_id = extract_custom_emoji_id(message)
+        if not emoji_id and text.isdigit() and len(text) > 5: emoji_id = text
 
         if not emoji_id:
             await message.answer(
-                f"{e('error')} <b>Не найден премиум-эмодзи</b>\n\n"
-                "Отправьте сообщение с <b>премиум-эмодзи</b>,\n"
-                "или <code>id:ЧИСЛО</code> для ввода ID вручную.",
-                parse_mode="HTML",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                    [btn("🔄 Попробовать снова", callback_data=f"emj_set_{key}")],
-                    [btn("◀️ Назад", callback_data="design_emoji")]
-                ])
-            )
+                "❌ <b>Не найден премиум-эмодзи</b>\n\nОтправьте эмодзи или <code>id:ЧИСЛО</code>",
+                parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [mkbtn("🔄 Ещё раз", callback_data=f"emj_set_{key}")],
+                    [mkbtn(b("btn_back"), callback_data="design_emoji")]
+                ]))
             return
 
-        # Определяем fallback
         fallback = EMOJI_KEYS[key]["default"]
-        if message.text:
-            for ch in message.text:
-                if ord(ch) > 127 and not ch.isdigit():
-                    fallback = ch
-                    break
+        for ch in (message.text or ""):
+            if ord(ch) > 127 and not ch.isdigit():
+                fallback = ch; break
 
         cfg = load_config()
         cfg.setdefault("emoji", {})[key] = {"id": str(emoji_id), "fallback": fallback}
         save_config(cfg)
-
         await message.answer(
-            f"{e('success')} <b>Эмодзи обновлён!</b>\n\n"
-            f"Элемент: <b>{EMOJI_KEYS[key]['label']}</b>\n"
-            f"ID: <code>{emoji_id}</code>\n\n"
-            f"Превью: {e(key)}",
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [btn("😀 Ещё эмодзи", callback_data="design_emoji")],
-                [btn("◀️ Оформление", callback_data="admin_design")]
-            ])
-        )
+            f"✅ <b>Эмодзи обновлён!</b>\n\n"
+            f"{EMOJI_KEYS[key]['label']}: id=<code>{emoji_id}</code>\nПревью: {e(key)}",
+            parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [mkbtn("😀 Ещё", callback_data="design_emoji")],
+                [mkbtn(b("btn_back"), callback_data="admin_design")]
+            ]))
         return
 
-    # ── Рассылка от админа ──
-    if is_admin(user_id) and user_id in awaiting_broadcast:
-        awaiting_broadcast.discard(user_id)
+    # ═══ Админ: настройка текста сообщения ═══
+    if is_admin(uid) and state and state.get("action") == "set_text":
+        key = state["key"]; admin_state.pop(uid, None)
+        if text.lower() == "reset":
+            cfg = load_config(); cfg.get("texts", {}).pop(key, None); save_config(cfg)
+            await message.answer(
+                f"✅ Текст <b>{MSG_META[key]}</b> сброшен на стандартный.",
+                parse_mode="HTML", reply_markup=kb_back("design_texts"))
+            return
+        cfg = load_config()
+        cfg.setdefault("texts", {})[key] = text
+        save_config(cfg)
+        await message.answer(
+            f"✅ <b>Текст обновлён!</b>\n\n"
+            f"Сообщение: <b>{MSG_META[key]}</b>\n\n"
+            f"<i>Превью (с подстановкой):</i>\n"
+            f"{t(key, name='Имя', style='Стиль', success='0', failed='0', styles_list='...', total_users='0', total_qr='0')}",
+            parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [mkbtn("📝 Ещё", callback_data="design_texts")],
+                [mkbtn(b("btn_back"), callback_data="admin_design")]
+            ]))
+        return
+
+    # ═══ Админ: настройка текста кнопки ═══
+    if is_admin(uid) and state and state.get("action") == "set_btn":
+        key = state["key"]; admin_state.pop(uid, None)
+        if text.lower() == "reset":
+            cfg = load_config(); cfg.get("buttons", {}).pop(key, None); save_config(cfg)
+            await message.answer(
+                f"✅ Кнопка <b>{BTN_META[key]}</b> сброшена на стандартную.",
+                parse_mode="HTML", reply_markup=kb_back("design_buttons"))
+            return
+        cfg = load_config()
+        cfg.setdefault("buttons", {})[key] = text
+        save_config(cfg)
+        await message.answer(
+            f"✅ <b>Кнопка обновлена!</b>\n\n"
+            f"<b>{BTN_META[key]}</b> → <code>{text}</code>",
+            parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [mkbtn("🔘 Ещё", callback_data="design_buttons")],
+                [mkbtn(b("btn_back"), callback_data="admin_design")]
+            ]))
+        return
+
+    # ═══ Рассылка ═══
+    if is_admin(uid) and uid in awaiting_broadcast:
+        awaiting_broadcast.discard(uid)
         db = load_db()
-        success, failed = 0, 0
-        for uid in db:
+        ok, fail = 0, 0
+        for u in db:
             try:
-                await bot.copy_message(int(uid), user_id, message.message_id)
-                success += 1
+                await bot.copy_message(int(u), uid, message.message_id); ok += 1
             except Exception:
-                failed += 1
+                fail += 1
         await message.answer(
-            f"{e('broadcast')} <b>Рассылка завершена</b>\n\n"
-            f"┌ ✅ Доставлено: <b>{success}</b>\n"
-            f"└ ❌ Ошибок: <b>{failed}</b>",
-            parse_mode="HTML",
-            reply_markup=main_keyboard(is_admin_user=True)
-        )
+            t("msg_broadcast_done", success=ok, failed=fail),
+            parse_mode="HTML", reply_markup=kb_main(admin=True))
         return
 
-    # ── Проверка подписки ──
-    if not is_admin(user_id) and not await is_subscribed(user_id):
-        await message.answer(
-            f"{e('lock')} <b>Доступ ограничен</b>\n\n"
-            "Подпишитесь на канал для использования бота.",
-            parse_mode="HTML",
-            reply_markup=subscription_keyboard()
-        )
+    # ═══ Проверка подписки ═══
+    if not is_admin(uid) and not await is_subscribed(uid):
+        await message.answer(t("msg_access_denied"), parse_mode="HTML", reply_markup=kb_sub())
         return
 
-    # ── Генерация QR ──
-    if not text:
-        return
-
-    style = user_style.pop(user_id, "dark_rounded")
-    wait_msg = await message.answer(f"{e('wait')} <b>Генерирую QR-код...</b>", parse_mode="HTML")
-
+    # ═══ Генерация QR ═══
+    if not text: return
+    style = user_style.pop(uid, "dark_rounded")
+    wait_msg = await message.answer(t("msg_generating"), parse_mode="HTML")
     try:
-        qr_file = generate_qr(text, user_id, style)
+        qr_file = generate_qr(text, uid, style)
         photo = FSInputFile(qr_file)
-
         db = load_db()
-        if str(user_id) not in db:
-            db[str(user_id)] = {"qr_count": 0}
-        db[str(user_id)]["qr_count"] = db[str(user_id)].get("qr_count", 0) + 1
+        if str(uid) not in db: db[str(uid)] = {"qr_count": 0}
+        db[str(uid)]["qr_count"] = db[str(uid)].get("qr_count", 0) + 1
         save_db(db)
-
-        style_name = STYLES.get(style, {}).get("name", "")
+        sn = STYLES.get(style, {}).get("name", "")
         await message.answer_photo(
-            photo=photo,
-            caption=f"{e('success')} <b>QR-код готов!</b>\n"
-                    f"Стиль: {style_name}\n\n"
-                    "Нажми кнопку ниже чтобы создать ещё 👇",
-            parse_mode="HTML",
-            reply_markup=main_keyboard(is_admin_user=is_admin(user_id))
-        )
+            photo=photo, caption=t("msg_qr_ready", style=sn),
+            parse_mode="HTML", reply_markup=kb_main(admin=is_admin(uid)))
         os.remove(qr_file)
     except Exception:
         await message.answer(
-            f"{e('error')} <b>Ошибка при создании QR-кода</b>\n\nПопробуйте ещё раз.",
-            parse_mode="HTML",
-            reply_markup=main_keyboard(is_admin_user=is_admin(user_id))
-        )
+            t("msg_qr_error"), parse_mode="HTML", reply_markup=kb_main(admin=is_admin(uid)))
     finally:
         await wait_msg.delete()
 
@@ -752,151 +890,123 @@ async def handle_text(message: Message):
 #           QR ГЕНЕРАТОРЫ
 # ═══════════════════════════════════════
 
-def generate_qr(text, user_id, style="dark_rounded"):
-    generators = {
-        "dark_rounded": gen_dark_rounded, "classic": gen_classic,
-        "dots": gen_dots, "gradient_blue": gen_gradient,
-        "neon_green": gen_neon, "sunset": gen_sunset,
-        "ocean": gen_ocean, "minimal": gen_minimal,
-    }
-    return generators.get(style, gen_dark_rounded)(text, user_id)
-
+def generate_qr(text, uid, style="dark_rounded"):
+    g = {"dark_rounded": gen_dark_rounded, "classic": gen_classic,
+         "dots": gen_dots, "gradient_blue": gen_gradient,
+         "neon_green": gen_neon, "sunset": gen_sunset,
+         "ocean": gen_ocean, "minimal": gen_minimal}
+    return g.get(style, gen_dark_rounded)(text, uid)
 
 def _make_matrix(text):
     qr = qrcode.QRCode(version=1, box_size=50, border=2)
-    qr.add_data(text)
-    qr.make(fit=True)
+    qr.add_data(text); qr.make(fit=True)
     return qr.get_matrix()
 
+def _nb(matrix, sz, r, c, dr, dc):
+    nr, nc = r+dr, c+dc
+    return matrix[nr][nc] if 0 <= nr < sz and 0 <= nc < sz else False
 
-def _has_neighbor(matrix, size, row, col, dr, dc):
-    nr, nc = row + dr, col + dc
-    return matrix[nr][nc] if 0 <= nr < size and 0 <= nc < size else False
-
-
-def _draw_rounded(draw, matrix, size, border, ms, radius, bg, color_fn):
-    for row in range(size):
-        for col in range(size):
-            if not matrix[row][col]:
-                continue
-            x, y = (col + border) * ms, (row + border) * ms
-            c = color_fn(row, col, size)
-            t = _has_neighbor(matrix, size, row, col, -1, 0)
-            r = _has_neighbor(matrix, size, row, col, 0, 1)
-            b = _has_neighbor(matrix, size, row, col, 1, 0)
-            l = _has_neighbor(matrix, size, row, col, 0, -1)
-            draw.rectangle([(x, y), (x + ms, y + ms)], fill=c)
-            if not t and not l:
-                draw.rectangle([(x, y), (x + radius, y + radius)], fill=bg)
-                draw.ellipse([(x, y), (x + radius * 2, y + radius * 2)], fill=c)
-            if not t and not r:
-                draw.rectangle([(x + ms - radius, y), (x + ms, y + radius)], fill=bg)
-                draw.ellipse([(x + ms - radius * 2, y), (x + ms, y + radius * 2)], fill=c)
-            if not b and not r:
-                draw.rectangle([(x + ms - radius, y + ms - radius), (x + ms, y + ms)], fill=bg)
-                draw.ellipse([(x + ms - radius * 2, y + ms - radius * 2), (x + ms, y + ms)], fill=c)
-            if not b and not l:
-                draw.rectangle([(x, y + ms - radius), (x + radius, y + ms)], fill=bg)
-                draw.ellipse([(x, y + ms - radius * 2), (x + radius * 2, y + ms)], fill=c)
-
+def _draw_rounded(draw, m, sz, brd, ms, rad, bg, cfn):
+    for row in range(sz):
+        for col in range(sz):
+            if not m[row][col]: continue
+            x, y = (col+brd)*ms, (row+brd)*ms
+            c = cfn(row, col, sz)
+            tp = _nb(m,sz,row,col,-1,0); rt = _nb(m,sz,row,col,0,1)
+            bt = _nb(m,sz,row,col,1,0); lt = _nb(m,sz,row,col,0,-1)
+            draw.rectangle([(x,y),(x+ms,y+ms)], fill=c)
+            if not tp and not lt:
+                draw.rectangle([(x,y),(x+rad,y+rad)], fill=bg)
+                draw.ellipse([(x,y),(x+rad*2,y+rad*2)], fill=c)
+            if not tp and not rt:
+                draw.rectangle([(x+ms-rad,y),(x+ms,y+rad)], fill=bg)
+                draw.ellipse([(x+ms-rad*2,y),(x+ms,y+rad*2)], fill=c)
+            if not bt and not rt:
+                draw.rectangle([(x+ms-rad,y+ms-rad),(x+ms,y+ms)], fill=bg)
+                draw.ellipse([(x+ms-rad*2,y+ms-rad*2),(x+ms,y+ms)], fill=c)
+            if not bt and not lt:
+                draw.rectangle([(x,y+ms-rad),(x+rad,y+ms)], fill=bg)
+                draw.ellipse([(x,y+ms-rad*2),(x+rad*2,y+ms)], fill=c)
 
 def _lerp(c1, c2, t):
-    return tuple(int(c1[i] + (c2[i] - c1[i]) * t) for i in range(3))
-
+    return tuple(int(c1[i]+(c2[i]-c1[i])*t) for i in range(3))
 
 def gen_dark_rounded(text, uid):
-    m = _make_matrix(text); ms, brd, sz = 50, 2, len(m)
-    img = Image.new('RGB', ((sz + brd * 2) * ms,) * 2, (12, 12, 12))
-    _draw_rounded(ImageDraw.Draw(img), m, sz, brd, ms, 22, (12, 12, 12), lambda r, c, s: (255, 255, 255))
-    f = f"qr_{uid}.png"; img.save(f); return f
-
+    m=_make_matrix(text); ms,brd,sz=50,2,len(m)
+    img=Image.new('RGB',((sz+brd*2)*ms,)*2,(12,12,12))
+    _draw_rounded(ImageDraw.Draw(img),m,sz,brd,ms,22,(12,12,12),lambda r,c,s:(255,255,255))
+    f=f"qr_{uid}.png"; img.save(f); return f
 
 def gen_classic(text, uid):
-    m = _make_matrix(text); ms, brd, sz = 50, 2, len(m)
-    img = Image.new('RGB', ((sz + brd * 2) * ms,) * 2, (255, 255, 255))
-    d = ImageDraw.Draw(img)
-    for row in range(sz):
-        for col in range(sz):
-            if m[row][col]:
-                x, y = (col + brd) * ms, (row + brd) * ms
-                d.rectangle([(x, y), (x + ms, y + ms)], fill=(0, 0, 0))
-    f = f"qr_{uid}.png"; img.save(f); return f
-
+    m=_make_matrix(text); ms,brd,sz=50,2,len(m)
+    img=Image.new('RGB',((sz+brd*2)*ms,)*2,(255,255,255)); d=ImageDraw.Draw(img)
+    for r in range(sz):
+        for c in range(sz):
+            if m[r][c]:
+                x,y=(c+brd)*ms,(r+brd)*ms; d.rectangle([(x,y),(x+ms,y+ms)],fill=(0,0,0))
+    f=f"qr_{uid}.png"; img.save(f); return f
 
 def gen_dots(text, uid):
-    m = _make_matrix(text); ms, brd, sz = 50, 2, len(m)
-    img = Image.new('RGB', ((sz + brd * 2) * ms,) * 2, (245, 245, 250))
-    d = ImageDraw.Draw(img); r = ms // 2 - 3
-    for row in range(sz):
-        for col in range(sz):
-            if m[row][col]:
-                cx, cy = (col + brd) * ms + ms // 2, (row + brd) * ms + ms // 2
-                d.ellipse([(cx - r, cy - r), (cx + r, cy + r)], fill=(30, 60, 180))
-    f = f"qr_{uid}.png"; img.save(f); return f
-
+    m=_make_matrix(text); ms,brd,sz=50,2,len(m)
+    img=Image.new('RGB',((sz+brd*2)*ms,)*2,(245,245,250)); d=ImageDraw.Draw(img); rd=ms//2-3
+    for r in range(sz):
+        for c in range(sz):
+            if m[r][c]:
+                cx,cy=(c+brd)*ms+ms//2,(r+brd)*ms+ms//2
+                d.ellipse([(cx-rd,cy-rd),(cx+rd,cy+rd)],fill=(30,60,180))
+    f=f"qr_{uid}.png"; img.save(f); return f
 
 def gen_gradient(text, uid):
-    m = _make_matrix(text); ms, brd, sz = 50, 2, len(m)
-    bg = (255, 255, 255)
-    img = Image.new('RGB', ((sz + brd * 2) * ms,) * 2, bg)
-    _draw_rounded(ImageDraw.Draw(img), m, sz, brd, ms, 20, bg,
-                  lambda r, c, s: _lerp((50, 50, 220), (180, 50, 220), (r + c) / (2 * s) if s else 0))
-    f = f"qr_{uid}.png"; img.save(f); return f
-
+    m=_make_matrix(text); ms,brd,sz=50,2,len(m); bg=(255,255,255)
+    img=Image.new('RGB',((sz+brd*2)*ms,)*2,bg)
+    _draw_rounded(ImageDraw.Draw(img),m,sz,brd,ms,20,bg,
+        lambda r,c,s:_lerp((50,50,220),(180,50,220),(r+c)/(2*s) if s else 0))
+    f=f"qr_{uid}.png"; img.save(f); return f
 
 def gen_neon(text, uid):
-    m = _make_matrix(text); ms, brd, sz = 50, 4, len(m)
-    isz = (sz + brd * 2) * ms; bg = (10, 10, 15)
-    glow = Image.new('RGB', (isz, isz), bg); gd = ImageDraw.Draw(glow)
-    for row in range(sz):
-        for col in range(sz):
-            if m[row][col]:
-                x, y = (col + brd) * ms, (row + brd) * ms
-                gd.rectangle([(x - 8, y - 8), (x + ms + 8, y + ms + 8)], fill=(0, 255, 100))
-    glow = glow.filter(ImageFilter.GaussianBlur(18))
-    img = Image.new('RGB', (isz, isz), bg); d = ImageDraw.Draw(img)
-    for row in range(sz):
-        for col in range(sz):
-            if m[row][col]:
-                x, y = (col + brd) * ms, (row + brd) * ms
-                d.rectangle([(x, y), (x + ms, y + ms)], fill=(180, 255, 200))
-    img = ImageChops.lighter(glow, img)
-    f = f"qr_{uid}.png"; img.save(f); return f
-
+    m=_make_matrix(text); ms,brd,sz=50,4,len(m); isz=(sz+brd*2)*ms; bg=(10,10,15)
+    gl=Image.new('RGB',(isz,isz),bg); gd=ImageDraw.Draw(gl)
+    for r in range(sz):
+        for c in range(sz):
+            if m[r][c]:
+                x,y=(c+brd)*ms,(r+brd)*ms
+                gd.rectangle([(x-8,y-8),(x+ms+8,y+ms+8)],fill=(0,255,100))
+    gl=gl.filter(ImageFilter.GaussianBlur(18))
+    img=Image.new('RGB',(isz,isz),bg); d=ImageDraw.Draw(img)
+    for r in range(sz):
+        for c in range(sz):
+            if m[r][c]:
+                x,y=(c+brd)*ms,(r+brd)*ms; d.rectangle([(x,y),(x+ms,y+ms)],fill=(180,255,200))
+    img=ImageChops.lighter(gl,img)
+    f=f"qr_{uid}.png"; img.save(f); return f
 
 def gen_sunset(text, uid):
-    m = _make_matrix(text); ms, brd, sz = 50, 2, len(m)
-    bg = (255, 250, 245)
-    img = Image.new('RGB', ((sz + brd * 2) * ms,) * 2, bg)
-    _draw_rounded(ImageDraw.Draw(img), m, sz, brd, ms, 18, bg,
-                  lambda r, c, s: _lerp((255, 100, 50), (200, 50, 120), r / s if s else 0))
-    f = f"qr_{uid}.png"; img.save(f); return f
-
+    m=_make_matrix(text); ms,brd,sz=50,2,len(m); bg=(255,250,245)
+    img=Image.new('RGB',((sz+brd*2)*ms,)*2,bg)
+    _draw_rounded(ImageDraw.Draw(img),m,sz,brd,ms,18,bg,
+        lambda r,c,s:_lerp((255,100,50),(200,50,120),r/s if s else 0))
+    f=f"qr_{uid}.png"; img.save(f); return f
 
 def gen_ocean(text, uid):
-    m = _make_matrix(text); ms, brd, sz = 50, 3, len(m)
-    img = Image.new('RGB', ((sz + brd * 2) * ms,) * 2, (15, 20, 35))
-    d = ImageDraw.Draw(img); r = ms // 2 - 2
-    for row in range(sz):
-        for col in range(sz):
-            if m[row][col]:
-                cx, cy = (col + brd) * ms + ms // 2, (row + brd) * ms + ms // 2
-                t = (row + col) / (2 * sz) if sz else 0
-                d.ellipse([(cx - r, cy - r), (cx + r, cy + r)], fill=_lerp((0, 200, 200), (0, 100, 220), t))
-    f = f"qr_{uid}.png"; img.save(f); return f
-
+    m=_make_matrix(text); ms,brd,sz=50,3,len(m)
+    img=Image.new('RGB',((sz+brd*2)*ms,)*2,(15,20,35)); d=ImageDraw.Draw(img); rd=ms//2-2
+    for r in range(sz):
+        for c in range(sz):
+            if m[r][c]:
+                cx,cy=(c+brd)*ms+ms//2,(r+brd)*ms+ms//2
+                tt=(r+c)/(2*sz) if sz else 0
+                d.ellipse([(cx-rd,cy-rd),(cx+rd,cy+rd)],fill=_lerp((0,200,200),(0,100,220),tt))
+    f=f"qr_{uid}.png"; img.save(f); return f
 
 def gen_minimal(text, uid):
-    m = _make_matrix(text); ms, brd, sz = 50, 3, len(m)
-    img = Image.new('RGB', ((sz + brd * 2) * ms,) * 2, (252, 252, 252))
-    d = ImageDraw.Draw(img); gap = 6
-    for row in range(sz):
-        for col in range(sz):
-            if m[row][col]:
-                x, y = (col + brd) * ms + gap, (row + brd) * ms + gap
-                w = ms - gap * 2
-                d.rounded_rectangle([(x, y), (x + w, y + w)], radius=10, fill=(40, 40, 40))
-    f = f"qr_{uid}.png"; img.save(f); return f
+    m=_make_matrix(text); ms,brd,sz=50,3,len(m)
+    img=Image.new('RGB',((sz+brd*2)*ms,)*2,(252,252,252)); d=ImageDraw.Draw(img); gap=6
+    for r in range(sz):
+        for c in range(sz):
+            if m[r][c]:
+                x,y=(c+brd)*ms+gap,(r+brd)*ms+gap; w=ms-gap*2
+                d.rounded_rectangle([(x,y),(x+w,y+w)],radius=10,fill=(40,40,40))
+    f=f"qr_{uid}.png"; img.save(f); return f
 
 
 # ═══════════════════════════════════════
@@ -906,7 +1016,6 @@ def gen_minimal(text, uid):
 async def main():
     print("✅ Бот запущен")
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
