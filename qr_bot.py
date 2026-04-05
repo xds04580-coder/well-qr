@@ -192,7 +192,7 @@ def save_db(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 def load_config():
-    default = {"emoji": {}, "button_color": None, "texts": {}, "buttons": {}}
+    default = {"emoji": {}, "button_color": None, "texts": {}, "buttons": {}, "style_names": {}}
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
@@ -241,6 +241,12 @@ def b(key: str) -> str:
     """Получает текст кнопки (кастомный или дефолтный)."""
     cfg = load_config()
     return cfg.get("buttons", {}).get(key) or DEFAULT_BTNS.get(key, key)
+
+
+def sname(key: str) -> str:
+    """Получает название кнопки стиля QR (кастомное или дефолтное)."""
+    cfg = load_config()
+    return cfg.get("style_names", {}).get(key) or STYLES.get(key, {}).get("name", key)
 
 
 def mkbtn(text: str, callback_data: str = None, url: str = None) -> InlineKeyboardButton:
@@ -299,7 +305,7 @@ def kb_styles():
     rows = []
     keys = list(STYLES.keys())
     for i in range(0, len(keys), 2):
-        row = [mkbtn(STYLES[keys[i+j]]["name"], callback_data=f"style_{keys[i+j]}")
+        row = [mkbtn(sname(keys[i+j]), callback_data=f"style_{keys[i+j]}")
                for j in range(2) if i+j < len(keys)]
         rows.append(row)
     rows.append([mkbtn(b("btn_back"), callback_data="back_main")])
@@ -319,6 +325,7 @@ def kb_design():
         [mkbtn("😀 Эмодзи", callback_data="design_emoji")],
         [mkbtn("📝 Тексты", callback_data="design_texts")],
         [mkbtn("🔘 Кнопки", callback_data="design_buttons")],
+        [mkbtn("🎨 Кнопки стилей", callback_data="design_style_btns")],
         [mkbtn("🎹 Цвет кнопок", callback_data="design_colors")],
         [mkbtn("🔄 Сбросить всё", callback_data="design_reset")],
         [mkbtn(b("btn_back"), callback_data="open_admin")]
@@ -377,7 +384,27 @@ def kb_btn_list():
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def kb_emoji_list():
+def kb_style_btn_list():
+    """Список кнопок стилей QR для редактирования."""
+    cfg = load_config()
+    custom = cfg.get("style_names", {})
+    rows = []
+    keys = list(STYLES.keys())
+    for i in range(0, len(keys), 2):
+        row = []
+        for j in range(2):
+            if i + j < len(keys):
+                k = keys[i + j]
+                label = STYLES[k]["name"]
+                mark = " ✦" if k in custom else ""
+                row.append(mkbtn(f"{label}{mark}", callback_data=f"stb_{k}"))
+        rows.append(row)
+    rows.append([mkbtn("🗑 Сбросить все стили", callback_data="stb_reset")])
+    rows.append([mkbtn(b("btn_back"), callback_data="admin_design")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+
     cfg = load_config()
     custom = cfg.get("emoji", {})
     rows = []
@@ -528,6 +555,7 @@ async def cb_design(callback: CallbackQuery):
     ce = sum(1 for v in cfg.get("emoji", {}).values() if v.get("id"))
     ct = len(cfg.get("texts", {}))
     cb_ = len(cfg.get("buttons", {}))
+    cs = len(cfg.get("style_names", {}))
     cl = "по умолчанию"
     for info in BUTTON_COLORS.values():
         if info["value"] == cfg.get("button_color"):
@@ -537,6 +565,7 @@ async def cb_design(callback: CallbackQuery):
         f"Эмодзи: <b>{ce} / {len(EMOJI_KEYS)}</b>\n"
         f"Тексты: <b>{ct} / {len(DEFAULT_MSGS)}</b>\n"
         f"Кнопки: <b>{cb_} / {len(DEFAULT_BTNS)}</b>\n"
+        f"Стили QR: <b>{cs} / {len(STYLES)}</b>\n"
         f"Цвет: <b>{cl}</b>",
         parse_mode="HTML", reply_markup=kb_design())
     await callback.answer()
@@ -722,6 +751,49 @@ async def cb_color_set(callback: CallbackQuery):
 
 
 # ═══════════════════════════════════════
+#     CALLBACK — КНОПКИ СТИЛЕЙ QR
+# ═══════════════════════════════════════
+
+@dp.callback_query(F.data == "design_style_btns")
+async def cb_style_btns_menu(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    admin_state.pop(callback.from_user.id, None)
+    await callback.message.edit_text(
+        "🎨 <b>Кнопки стилей QR</b>\n\n"
+        "Выберите стиль для переименования кнопки.\n"
+        "<b>✦</b> — кастомизированные.",
+        parse_mode="HTML", reply_markup=kb_style_btn_list())
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "stb_reset")
+async def cb_style_btns_reset(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    cfg = load_config(); cfg["style_names"] = {}; save_config(cfg)
+    await callback.message.edit_text(
+        "✅ <b>Все названия стилей сброшены</b>",
+        parse_mode="HTML", reply_markup=kb_back("design_style_btns"))
+    await callback.answer()
+
+
+@dp.callback_query(F.data.startswith("stb_"))
+async def cb_style_btn_edit(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    key = callback.data[4:]
+    if key not in STYLES:
+        await callback.answer("❌", show_alert=True); return
+    admin_state[callback.from_user.id] = {"action": "set_style_btn", "key": key}
+    cfg = load_config()
+    current = cfg.get("style_names", {}).get(key) or STYLES[key]["name"]
+    await callback.message.edit_text(
+        f"🎨 <b>{STYLES[key]['name']}</b>\n\n"
+        f"Текущее название кнопки: <code>{current}</code>\n\n"
+        f"Отправьте новое название или <code>reset</code> для сброса.",
+        parse_mode="HTML", reply_markup=kb_back("design_style_btns"))
+    await callback.answer()
+
+
+# ═══════════════════════════════════════
 #     CALLBACK — СБРОС ВСЕГО
 # ═══════════════════════════════════════
 
@@ -730,7 +802,7 @@ async def cb_reset_all(callback: CallbackQuery):
     if not is_admin(callback.from_user.id): return
     cfg = load_config()
     cfg["emoji"] = {}; cfg["button_color"] = None
-    cfg["texts"] = {}; cfg["buttons"] = {}
+    cfg["texts"] = {}; cfg["buttons"] = {}; cfg["style_names"] = {}
     save_config(cfg)
     await callback.message.edit_text(
         "✅ <b>Всё оформление сброшено</b>\n\nЭмодзи, тексты, кнопки, цвета — по умолчанию.",
@@ -839,6 +911,27 @@ async def handle_text(message: Message):
             f"<b>{BTN_META[key]}</b> → <code>{text}</code>",
             parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [mkbtn("🔘 Ещё", callback_data="design_buttons")],
+                [mkbtn(b("btn_back"), callback_data="admin_design")]
+            ]))
+        return
+
+    # ═══ Админ: переименование кнопки стиля QR ═══
+    if is_admin(uid) and state and state.get("action") == "set_style_btn":
+        key = state["key"]; admin_state.pop(uid, None)
+        if text.lower() == "reset":
+            cfg = load_config(); cfg.get("style_names", {}).pop(key, None); save_config(cfg)
+            await message.answer(
+                f"✅ Название стиля <b>{STYLES[key]['name']}</b> сброшено на стандартное.",
+                parse_mode="HTML", reply_markup=kb_back("design_style_btns"))
+            return
+        cfg = load_config()
+        cfg.setdefault("style_names", {})[key] = text
+        save_config(cfg)
+        await message.answer(
+            f"✅ <b>Название стиля обновлено!</b>\n\n"
+            f"<b>{STYLES[key]['name']}</b> → <code>{text}</code>",
+            parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [mkbtn("🎨 Ещё", callback_data="design_style_btns")],
                 [mkbtn(b("btn_back"), callback_data="admin_design")]
             ]))
         return
